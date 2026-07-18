@@ -38,8 +38,11 @@
         tr.top-zone td.rank-num { color: var(--success); font-weight: bold; }
         
         .txt-left { text-align: left; font-weight: bold; }
-        .team-flag-name { display: flex; align-items: center; gap: 6px; }
-        .flag { font-size: 16px; display: inline-block; vertical-align: middle; }
+        .team-flag-name { display: flex; align-items: center; gap: 8px; }
+        
+        /* Định dạng ảnh cờ quốc gia */
+        .flag-img { width: 20px; height: 14px; object-fit: cover; border: 1px solid #cbd5e0; border-radius: 2px; display: inline-block; vertical-align: middle; }
+        
         .pts { font-weight: bold; color: var(--primary); background-color: #ebf8ff; }
         tr.top-zone td.pts { background-color: #d4f3e1; color: #1e7a43; }
         
@@ -57,7 +60,7 @@
         .match-time { font-size: 11px; color: #718096; width: 55px; line-height: 1.2; font-weight: 500; text-align: center; border-right: 1px solid #e2e8f0; padding-right: 4px; }
         
         .match-vs { display: flex; align-items: center; justify-content: center; flex: 1; gap: 4px; font-weight: 500; }
-        .team-name { width: 38%; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+        .team-name { width: 38%; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
         .team-left { justify-content: flex-end; text-align: right; }
         .team-right { justify-content: flex-start; text-align: left; }
         
@@ -91,22 +94,22 @@
         "B": ["Thái Lan", "Malaysia", "Philippines", "Myanmar", "Lào"]
     };
 
-    // Từ điển ánh xạ tên quốc gia sang Emoji Cờ tương ứng
+    // Đường dẫn ảnh cờ định dạng chuẩn ISO mã quốc gia từ CDN uy tín toàn cầu
     const flags = {
-        "Việt Nam": "🇻🇳",
-        "Singapore": "🇸🇬",
-        "Indonesia": "🇮🇩",
-        "Campuchia": "🇰🇭",
-        "Timor-Leste": "🇹🇱",
-        "Thái Lan": "🇹🇭",
-        "Malaysia": "🇲🇾",
-        "Philippines": "🇵🇭",
-        "Myanmar": "🇲🇲",
-        "Lào": "🇱🇦"
+        "Việt Nam": "https://flagcdn.com/w40/vn.png",
+        "Singapore": "https://flagcdn.com/w40/sg.png",
+        "Indonesia": "https://flagcdn.com/w40/id.png",
+        "Campuchia": "https://flagcdn.com/w40/kh.png",
+        "Timor-Leste": "https://flagcdn.com/w40/tl.png",
+        "Thái Lan": "https://flagcdn.com/w40/th.png",
+        "Malaysia": "https://flagcdn.com/w40/my.png",
+        "Philippines": "https://flagcdn.com/w40/ph.png",
+        "Myanmar": "https://flagcdn.com/w40/mm.png",
+        "Lào": "https://flagcdn.com/w40/la.png"
     };
 
     function getFlag(teamName) {
-        return flags[teamName] ? `<span class="flag">${flags[teamName]}</span>` : "⚽";
+        return flags[teamName] ? `<img src="${flags[teamName]}" class="flag-img" alt="${teamName}">` : "";
     }
 
     async function fetchMatchesFromServer() {
