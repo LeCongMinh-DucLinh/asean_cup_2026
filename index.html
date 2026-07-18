@@ -11,6 +11,7 @@
             --card-bg: #ffffff;
             --text: #2c3e50;
             --accent: #e74c3c;
+            --success: #2ecc71;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -64,30 +65,39 @@
             margin-bottom: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             display: grid;
-            grid-template-columns: 80px 1fr 70px;
+            grid-template-columns: 80px 1fr 100px;
             align-items: center;
         }
         .match-time { font-size: 12px; color: #718096; border-right: 1px solid #e2e8f0; line-height: 1.4; }
-        .match-vs { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-weight: 500; }
-        .team-name { width: 40%; }
+        .match-vs { display: flex; align-items: center; justify-content: center; padding: 0 10px; font-weight: 500; gap: 8px; }
+        .team-name { width: 35%; font-size: 14px; }
         .team-left { text-align: right; }
         .team-right { text-align: left; }
-        .score-box { background: #edf2f7; padding: 6px 12px; border-radius: 6px; font-weight: bold; min-width: 45px; text-align: center; font-size: 15px; color: var(--primary); }
-        .score-box.live { background: #fff5f5; color: var(--accent); border: 1px solid #feb2b2; }
-        .grp-tag { text-align: right; font-size: 12px; font-weight: 600; color: #a0aec0; }
+        
+        /* Giao diện ô nhập tỷ số */
+        .score-input { width: 30px; padding: 5px; text-align: center; font-weight: bold; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 14px; }
+        .score-dash { font-weight: bold; color: #718096; }
+        
+        /* Nút lưu kết quả */
+        .btn-save { background-color: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; transition: background 0.2s; }
+        .btn-save:hover { background-color: #27ae60; }
+        .grp-tag { text-align: right; font-size: 12px; font-weight: 600; color: #a0aec0; margin-bottom: 4px; }
+        .action-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 5px; }
+        
+        .loading { text-align: center; padding: 20px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <header>
     <h1>🏆 ASEAN CUP 2026</h1>
-    <p>Cập nhật lịch thi đấu & Bảng xếp hạng tự động</p>
+    <p>Cập nhật lịch thi đấu & Bảng xếp hạng trực tuyến (Realtime)</p>
 </header>
 
 <div class="container">
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('bxh')">📊 Bảng Xếp Hạng</button>
-        <button class="tab-btn" onclick="switchTab('lich')">📅 Lịch Thi Đấu</button>
+        <button class="tab-btn" onclick="switchTab('lich')">📅 Lịch & Nhập Kết Quả</button>
     </div>
 
     <!-- TAB BẢNG XẾP HẠNG -->
@@ -116,50 +126,17 @@
 
     <!-- TAB LỊCH THI ĐẤU -->
     <div id="lich" class="content-section">
-        <div id="match-list"></div>
+        <div id="match-list" class="loading">Đang tải dữ liệu từ Firebase...</div>
     </div>
 </div>
 
 <script>
+    // Đường dẫn kết nối trực tiếp đến Firebase của bạn
     const FIREBASE_URL = "https://aseancup2026-default-rtdb.asia-southeast1.firebasedatabase.app/";
-    // =================================================================
-    // KHU VỰC CẬP NHẬT KẾT QUẢ TRẬN ĐẤU (BẠN CHỈ CẦN SỬA Ở ĐÂY)
-    // Nếu chưa đá: để score: null
-    // Nếu đã đá xong: sửa thành score: "M-N" (Ví dụ: score: "2-1")
-    // =================================================================
-    const matchesData = [
-        // --- LƯỢT TRẬN 1 ---
-        { stt: 1, group: "A", date: "24/07", time: "19:00", team1: "Campuchia", team2: "Singapore", score: "2-1" },
-        { stt: 2, group: "A", date: "24/07", time: "20:30", team1: "Timor-Leste", team2: "Việt Nam", score: "0-3" },
-        { stt: 3, group: "B", date: "25/07", time: "17:00", team1: "Myanmar", team2: "Malaysia", score: null },
-        { stt: 4, group: "B", date: "25/07", time: "20:00", team1: "Lào", team2: "Thái Lan", score: null },
-        
-        // --- LƯỢT TRẬN 2 ---
-        { stt: 5, group: "A", date: "27/07", time: "18:00", team1: "Singapore", team2: "Timor-Leste", score: null },
-        { stt: 6, group: "A", date: "27/07", time: "20:30", team1: "Indonesia", team2: "Campuchia", score: null },
-        { stt: 7, group: "B", date: "28/07", time: "17:00", team1: "Philippines", team2: "Myanmar", score: null },
-        { stt: 8, group: "B", date: "28/07", time: "20:00", team1: "Malaysia", team2: "Lào", score: null },
+    
+    // Mảng lưu trữ dữ liệu động tải về từ Firebase
+    let matchesData = [];
 
-        // --- LƯỢT TRẬN 3 ---
-        { stt: 9, group: "A", date: "31/07", time: "17:00", team1: "Timor-Leste", team2: "Indonesia", score: null },
-        { stt: 10, group: "A", date: "31/07", time: "20:00", team1: "Việt Nam", team2: "Singapore", score: null },
-        { stt: 11, group: "B", date: "01/08", time: "17:00", team1: "Lào", team2: "Philippines", score: null },
-        { stt: 12, group: "B", date: "01/08", time: "20:00", team1: "Thái Lan", team2: "Malaysia", score: null },
-
-        // --- LƯỢT TRẬN 4 ---
-        { stt: 13, group: "A", date: "03/08", time: "17:30", team1: "Campuchia", team2: "Timor-Leste", score: null },
-        { stt: 14, group: "A", date: "03/08", time: "20:30", team1: "Indonesia", team2: "Việt Nam", score: null },
-        { stt: 15, group: "B", date: "04/08", time: "17:00", team1: "Myanmar", team2: "Lào", score: null },
-        { stt: 16, group: "B", date: "04/08", time: "20:00", team1: "Philippines", team2: "Thái Lan", score: null },
-
-        // --- LƯỢT TRẬN 5 ---
-        { stt: 17, group: "A", date: "07/08", time: "20:00", team1: "Singapore", team2: "Indonesia", score: null },
-        { stt: 18, group: "A", date: "07/08", time: "20:00", team1: "Việt Nam", team2: "Campuchia", score: null },
-        { stt: 19, group: "B", date: "08/08", time: "20:00", team1: "Malaysia", team2: "Philippines", score: null },
-        { stt: 20, group: "B", date: "08/08", time: "20:00", team1: "Thái Lan", team2: "Myanmar", score: null }
-    ];
-
-    // Khởi tạo danh sách các đội bóng ban đầu
     const teams = {
         "A": ["Việt Nam", "Singapore", "Indonesia", "Campuchia", "Timor-Leste"],
         "B": ["Thái Lan", "Malaysia", "Philippines", "Myanmar", "Lào"]
@@ -170,6 +147,52 @@
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
+    }
+
+    // Hàm tự động tải dữ liệu từ Firebase về khi mở trang web
+    async function fetchMatchesFromServer() {
+        try {
+            const response = await fetch(`${FIREBASE_URL}matches.json`);
+            const data = await response.json();
+            if (data) {
+                matchesData = data;
+                renderPage();
+            } else {
+                document.getElementById('match-list').innerHTML = "Chưa có dữ liệu trên Firebase. Vui lòng kiểm tra lại!";
+            }
+        } catch (error) {
+            console.error("Lỗi tải dữ liệu:", error);
+            document.getElementById('match-list').innerHTML = "Không thể kết nối đến Firebase!";
+        }
+    }
+
+    // Hàm gửi cập nhật tỷ số trực tiếp lên server Firebase khi bấm nút "Lưu"
+    async function updateScore(index) {
+        const s1Value = document.getElementById(`s1-${index}`).value.trim();
+        const s2Value = document.getElementById(`s2-${index}`).value.trim();
+
+        // Cập nhật lại cấu trúc dữ liệu cục bộ
+        matchesData[index].s1 = s1Value;
+        matchesData[index].s2 = s2Value;
+
+        try {
+            // Thực hiện lệnh ghi đè trực tiếp lên nhánh phần tử của Firebase
+            const response = await fetch(`${FIREBASE_URL}matches/${index}.json`, {
+                method: 'PATCH',
+                body: JSON.stringify({ s1: s1Value, s2: s2Value }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                alert(`Đã cập nhật tỷ số trận ${matchesData[index].team1} - ${matchesData[index].team2} thành công!`);
+                renderPage(); // Tính toán lại bảng xếp hạng ngay lập tức
+            } else {
+                alert("Lỗi: Không thể ghi dữ liệu lên Firebase. Hãy kiểm tra lại tab Rules!");
+            }
+        } catch (error) {
+            alert("Lỗi kết nối mạng mạng khi lưu!");
+            console.error(error);
+        }
     }
 
     function initStandingTable(groupTeams) {
@@ -184,10 +207,9 @@
         let standings = { "A": initStandingTable(teams.A), "B": initStandingTable(teams.B) };
 
         matchesData.forEach(m => {
-            if (m.score && m.score.trim() !== "" && m.score.includes("-")) {
-                let parts = m.score.split("-");
-                let s1 = parseInt(parts[0].trim());
-                let s2 = parseInt(parts[1].trim());
+            if (m && m.s1 !== undefined && m.s2 !== undefined && m.s1 !== "" && m.s2 !== "") {
+                let s1 = parseInt(m.s1);
+                let s2 = parseInt(m.s2);
 
                 if (!isNaN(s1) && !isNaN(s2)) {
                     let t1 = standings[m.group][m.team1];
@@ -212,11 +234,13 @@
     }
 
     function renderPage() {
-        // 1. Hiển thị Lịch Thi Đấu
+        // 1. Hiển thị Lịch Thi Đấu và các ô nhập liệu tương tác
         let matchesHtml = '';
-        matchesData.forEach(m => {
-            let scoreDisplay = m.score ? m.score : "- : -";
-            let scoreClass = m.score ? "score-box" : "score-box live";
+        matchesData.forEach((m, index) => {
+            if (!m) return;
+            let s1Display = m.s1 !== undefined ? m.s1 : "";
+            let s2Display = m.s2 !== undefined ? m.s2 : "";
+
             matchesHtml += `
                 <div class="match-card">
                     <div class="match-time">
@@ -225,10 +249,15 @@
                     </div>
                     <div class="match-vs">
                         <span class="team-name team-left">${m.team1}</span>
-                        <span class="${scoreClass}">${scoreDisplay}</span>
+                        <input type="number" min="0" class="score-input" id="s1-${index}" value="${s1Display}" placeholder="-">
+                        <span class="score-dash">:</span>
+                        <input type="number" min="0" class="score-input" id="s2-${index}" value="${s2Display}" placeholder="-">
                         <span class="team-name team-right">${m.team2}</span>
                     </div>
-                    <div class="grp-tag">Bảng ${m.group}</div>
+                    <div class="action-box">
+                        <div class="grp-tag">Bảng ${m.group}</div>
+                        <button class="btn-save" onclick="updateScore(${index})">Lưu</button>
+                    </div>
                 </div>`;
         });
         document.getElementById('match-list').innerHTML = matchesHtml;
@@ -238,16 +267,16 @@
 
         ["A", "B"].forEach(grp => {
             let sortedTeams = Object.values(standings[grp]).sort((a, b) => {
-                if (b.pts !== a.pts) return b.pts - a.pts; // Ưu tiên Điểm số
-                if (b.gd !== a.gd) return b.gd - a.gd;     // Sau đó tới Hiệu số bàn thắng bại
-                return b.gf - a.gf;                         // Sau đó tới Số bàn ghi được
+                if (b.pts !== a.pts) return b.pts - a.pts; 
+                if (b.gd !== a.gd) return b.gd - a.gd;     
+                return b.gf - a.gf;                         
             });
 
             let bxhHtml = '';
-            sortedTeams.forEach((t, index) => {
+            sortedTeams.forEach((t, idx) => {
                 let displayGd = t.gd > 0 ? `+${t.gd}` : t.gd;
                 bxhHtml += `<tr>
-                    <td>${index + 1}</td>
+                    <td>${idx + 1}</td>
                     <td class="txt-left"><b>${t.name}</b></td>
                     <td>${t.played}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
                     <td>${displayGd}</td><td class="pts">${t.pts}</td>
@@ -257,8 +286,8 @@
         });
     }
 
-    // Chạy render lần đầu khi tải trang
-    renderPage();
+    // Kích hoạt gọi dữ liệu trực tuyến ngay khi mở trang web lên
+    fetchMatchesFromServer();
 </script>
 </body>
 </html>
