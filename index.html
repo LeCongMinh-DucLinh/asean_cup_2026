@@ -13,6 +13,7 @@
             --accent: #e74c3c;
             --success: #2ecc71;
             --border: #e2e8f0;
+            --top2-bg: #e6f7ed; /* Màu nền cho 2 đội đi tiếp */
         }
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: var(--bg); color: var(--text); margin: 0; padding: 0; padding-bottom: 30px; }
@@ -28,11 +29,19 @@
         .sub-title { font-size: 14px; margin: 15px 0 8px 0; color: var(--primary); font-weight: bold; border-left: 4px solid var(--primary); padding-left: 8px; }
         
         .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; min-width: 340px; }
-        th, td { padding: 8px 4px; border-bottom: 1px solid #edf2f7; }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; min-width: 380px; }
+        th, td { padding: 10px 6px; border-bottom: 1px solid #edf2f7; }
         th { background-color: #f7fafc; color: #4a5568; font-weight: 600; }
-        .txt-left { text-align: left; font-weight: bold; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        /* Định dạng hàng cho 2 đội đầu bảng */
+        tr.top-zone td { background-color: var(--top2-bg); }
+        tr.top-zone td.rank-num { color: var(--success); font-weight: bold; }
+        
+        .txt-left { text-align: left; font-weight: bold; }
+        .team-flag-name { display: flex; align-items: center; gap: 6px; }
+        .flag { font-size: 16px; display: inline-block; vertical-align: middle; }
         .pts { font-weight: bold; color: var(--primary); background-color: #ebf8ff; }
+        tr.top-zone td.pts { background-color: #d4f3e1; color: #1e7a43; }
         
         .match-list { display: flex; flex-direction: column; gap: 8px; }
         .match-card {
@@ -48,9 +57,9 @@
         .match-time { font-size: 11px; color: #718096; width: 55px; line-height: 1.2; font-weight: 500; text-align: center; border-right: 1px solid #e2e8f0; padding-right: 4px; }
         
         .match-vs { display: flex; align-items: center; justify-content: center; flex: 1; gap: 4px; font-weight: 500; }
-        .team-name { width: 38%; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .team-left { text-align: right; }
-        .team-right { text-align: left; }
+        .team-name { width: 38%; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+        .team-left { justify-content: flex-end; text-align: right; }
+        .team-right { justify-content: flex-start; text-align: left; }
         
         .score-input { width: 34px; height: 32px; padding: 0; text-align: center; font-weight: bold; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 15px; color: #1a202c; -moz-appearance: textfield; }
         .score-input::-webkit-outer-spin-button, .score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -58,7 +67,6 @@
         
         .btn-save { background-color: var(--success); color: white; border: none; width: 38px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .btn-save:hover { background-color: #27ae60; }
-        .btn-save:active { background-color: #1e8449; }
         
         .loading { text-align: center; padding: 20px; font-weight: bold; color: var(--primary); font-size: 14px; }
     </style>
@@ -82,6 +90,24 @@
         "A": ["Việt Nam", "Singapore", "Indonesia", "Campuchia", "Timor-Leste"],
         "B": ["Thái Lan", "Malaysia", "Philippines", "Myanmar", "Lào"]
     };
+
+    // Từ điển ánh xạ tên quốc gia sang Emoji Cờ tương ứng
+    const flags = {
+        "Việt Nam": "🇻🇳",
+        "Singapore": "🇸🇬",
+        "Indonesia": "🇮🇩",
+        "Campuchia": "🇰🇭",
+        "Timor-Leste": "🇹🇱",
+        "Thái Lan": "🇹🇭",
+        "Malaysia": "🇲🇾",
+        "Philippines": "🇵🇭",
+        "Myanmar": "🇲🇲",
+        "Lào": "🇱🇦"
+    };
+
+    function getFlag(teamName) {
+        return flags[teamName] ? `<span class="flag">${flags[teamName]}</span>` : "⚽";
+    }
 
     async function fetchMatchesFromServer() {
         try {
@@ -161,7 +187,6 @@
         return standings;
     }
 
-    // Hàm tự động xác định đội thắng Bán kết sau 2 lượt trận (Lượt đi + Lượt về)
     function determineWinner(idLượtĐi, idLượtVề, defaultTeam1, defaultTeam2) {
         let m1 = matchesData.find(m => m && m.id === idLượtĐi);
         let m2 = matchesData.find(m => m && m.id === idLượtVề);
@@ -175,15 +200,13 @@
             return (m1.team2 !== "Nhất A" && m1.team2 !== "Nhất B") ? `Thắng ${m1.team2} vs ${m1.team1}` : "Đang xác định";
         }
 
-        // Lượt đi: team1 (Nhì) đá sân nhà, team2 (Nhất) sân khách -> Tỷ số: s1_1 : s2_1
-        // Lượt về: team1 (Nhất) đá sân nhà, team2 (Nhì) sân khách -> Tỷ số: s1_2 : s2_2
         let tổng_điểm_nhất = s2_1 + s1_2;
         let tổng_điểm_nhì = s1_1 + s2_2;
 
-        if (tổng_điểm_nhất > tổng_điểm_nhì) return m2.team1; // Đội Nhất thắng
-        if (tổng_điểm_nhì > tổng_điểm_nhất) return m2.team2; // Đội Nhì thắng
+        if (tổng_điểm_nhất > tổng_điểm_nhì) return m2.team1;
+        if (tổng_điểm_nhì > tổng_điểm_nhất) return m2.team2;
         
-        return `${m2.team1} (hoặc ${m2.team2})`; // Trường hợp hòa nhau chưa tính penalty
+        return `${m2.team1} (hoặc ${m2.team2})`;
     }
 
     function renderPage() {
@@ -197,7 +220,6 @@
         let nhấtB = sortedB[0].played > 0 ? sortedB[0].name : "Nhất Bảng B";
         let nhìB = sortedB[1].played > 0 ? sortedB[1].name : "Nhì Bảng B";
 
-        // 1. Điền tên đội cho vòng Bán kết từ vòng bảng
         matchesData.forEach((m, idx) => {
             if (m.id >= 21 && m.id <= 24) {
                 if (m.team1_placeholder === "Nhất A") m.team1 = nhấtA;
@@ -212,10 +234,7 @@
             }
         });
 
-        // 2. Tự động tính toán đội thắng Bán kết để đẩy vào Chung kết
-        // Cặp BK1: Nhì B vs Nhất A (id 21 và 23)
         let thắng_BK1 = determineWinner(21, 23, "Nhì B", "Nhất A");
-        // Cặp BK2: Nhì A vs Nhất B (id 22 và 24)
         let thắng_BK2 = determineWinner(22, 24, "Nhì A", "Nhất B");
 
         matchesData.forEach((m, idx) => {
@@ -235,13 +254,15 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>#</th><th class="txt-left">Đội</th><th>T</th><th>H</th><th>B</th><th>H/S</th><th class="pts">Đ</th></tr>
+                        <tr><th>#</th><th class="txt-left">Đội</th><th>Trận</th><th>T</th><th>H</th><th>B</th><th>H/S</th><th class="pts">Đ</th></tr>
                     </thead>
                     <tbody>`;
         sortedA.forEach((t, idx) => {
-            htmlContent += `<tr>
-                <td>${idx + 1}</td><td class="txt-left">${t.name}</td>
-                <td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
+            let isTop2 = idx < 2 ? 'class="top-zone"' : '';
+            htmlContent += `<tr ${isTop2}>
+                <td class="rank-num">${idx + 1}</td>
+                <td class="txt-left"><div class="team-flag-name">${getFlag(t.name)} <span>${t.name}</span></div></td>
+                <td><b>${t.played}</b></td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
                 <td>${t.gd > 0 ? '+' + t.gd : t.gd}</td><td class="pts">${t.pts}</td>
             </tr>`;
         });
@@ -258,13 +279,15 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>#</th><th class="txt-left">Đội</th><th>T</th><th>H</th><th>B</th><th>H/S</th><th class="pts">Đ</th></tr>
+                        <tr><th>#</th><th class="txt-left">Đội</th><th>Trận</th><th>T</th><th>H</th><th>B</th><th>H/S</th><th class="pts">Đ</th></tr>
                     </thead>
                     <tbody>`;
         sortedB.forEach((t, idx) => {
-            htmlContent += `<tr>
-                <td>${idx + 1}</td><td class="txt-left">${t.name}</td>
-                <td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
+            let isTop2 = idx < 2 ? 'class="top-zone"' : '';
+            htmlContent += `<tr ${isTop2}>
+                <td class="rank-num">${idx + 1}</td>
+                <td class="txt-left"><div class="team-flag-name">${getFlag(t.name)} <span>${t.name}</span></div></td>
+                <td><b>${t.played}</b></td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
                 <td>${t.gd > 0 ? '+' + t.gd : t.gd}</td><td class="pts">${t.pts}</td>
             </tr>`;
         });
@@ -304,11 +327,11 @@
                     <div>${m.time}</div>
                 </div>
                 <div class="match-vs">
-                    <span class="team-name team-left">${m.team1}</span>
+                    <span class="team-name team-left"><span>${m.team1}</span> ${getFlag(m.team1)}</span>
                     <input type="number" class="score-input" id="s1-${index}" value="${s1Display}" placeholder="-">
                     <span class="score-dash">:</span>
                     <input type="number" class="score-input" id="s2-${index}" value="${s2Display}" placeholder="-">
-                    <span class="team-name team-right">${m.team2}</span>
+                    <span class="team-name team-right">${getFlag(m.team2)} <span>${m.team2}</span></span>
                 </div>
                 <button class="btn-save" onclick="updateScore(${index})" title="Lưu tỷ số">💾</button>
             </div>`;
